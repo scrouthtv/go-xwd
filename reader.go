@@ -1,4 +1,4 @@
-package xwd
+package github.com/scrouthtv/go-xwd
 
 import (
 	"encoding/binary"
