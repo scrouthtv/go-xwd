@@ -4,7 +4,7 @@ import "testing"
 import "bytes"
 import _ "embed"
 
-//go:embed map.xwd
+//go:embed 500colors.xwd
 var xwd8colors []byte
 
 func TestHeader(t *testing.T) {
@@ -21,7 +21,18 @@ func TestHeader(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	t.Logf("Color map (%d entries):", len(colors))
 	for _, c := range colors {
-		t.Logf("Color %d: %d/%d/%d (%d)\n", c.Pixel, c.Red, c.Green, c.Blue, c.Flags)
+		t.Log(c.String())
 	}
+
+	p, err := ReadPixmap(rdr, hdr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(p.At(0, 0))
+
+	/*t.Logf("\nPixmap (%d bytes):\n", len(*p))
+	t.Logf("%x\n", *p)*/
 }
