@@ -40,10 +40,24 @@ func (h *XWDFileHeader) String() string {
 	return out.String()
 }
 
+func (c *XWDColor) String() string {
+	return fmt.Sprintf("Color %d: %d/%d/%d (%d)", c.Pixel, c.Red, c.Green, c.Blue, c.Flags)
+}
+
 func (o Order) String() string {
 	switch o {
 	case BigEndian: return "big endian (0)"
 	case LittleEndian: return "little endian (1)"
 	default: return "invalid (" + strconv.Itoa(int(o)) + ")"
 	}
+}
+
+func hecateHex(p []byte) string {
+	var out strings.Builder
+
+	for _, b := range p {
+		fmt.Fprintf(&out, "%02x ", b)
+	}
+
+	return out.String()
 }
