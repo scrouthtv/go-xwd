@@ -9,6 +9,7 @@ import (
 // XWDImage groups together an xwd header and
 // a paletted image.
 // It's pointer type implements all image.Image functionality.
+// XWDImage is subject to removal.
 type XWDImage struct {
 	header   XWDFileHeader
 	colormap XWDColorMap
