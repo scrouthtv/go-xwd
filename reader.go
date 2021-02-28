@@ -11,6 +11,15 @@ import (
 	"strconv"
 )
 
+const (
+	xwdVersion = 7
+	xwdHeaderSize = 100 // size of the header without the window name
+
+	pixmapFormat = 2 // ZPixmap
+	xOffset = 0 // "number of pixels offset in X direction", idk
+	bitmapPad = 32 // "8, 16, 32 either XY or ZPixmap", idk
+)
+
 // XWDFileHeader contains information
 // about an xwd image.
 type XWDFileHeader struct {
@@ -21,9 +30,9 @@ type XWDFileHeader struct {
 	PixmapWidth       uint32
 	PixmapHeight      uint32
 	XOffset           uint32
-	ByteOrder         uint32
+	ByteOrder         Order
 	BitmapUnit        uint32
-	BitmapBitOrder    uint32
+	BitmapBitOrder    Order
 	BitmapPad         uint32
 	BitsPerPixel      uint32
 	BytesPerLine      uint32
@@ -39,6 +48,27 @@ type XWDFileHeader struct {
 	WindowX           uint32
 	WindowY           uint32
 	WindowBorderWidth uint32
+	WindowName string
+}
+
+type Order uint8
+
+const (
+	BigEndian Order = 0
+	LSBFirst Order = 0
+	LittleEndian Order = 1
+	MSBFirst Order = 1
+	Invalid Order = 255
+)
+
+func OrderFromUint32(i uint32) Order {
+	if i == 0 {
+		return LSBFirst
+	} else if i == 1 {
+		return MSBFirst
+	} else {
+		return Invalid
+	}
 }
 
 // XWDColorMap is the color map of this xwd image.
@@ -54,7 +84,7 @@ type XWDColorMap struct {
 
 // XWDImage groups together an xwd header and
 // a paletted image.
-// It's pointer implements all image functionality.
+// It's pointer type implements all image.Image functionality.
 type XWDImage struct {
 	header XWDFileHeader
 	image *image.Paletted
@@ -90,53 +120,91 @@ func Decode(r io.Reader) (image.Image, error) {
 	xwd.header.HeaderSize = binary.BigEndian.Uint32(buf[0:4])
 	log.Println("header size: ", xwd.header.HeaderSize)
 
-	buf = make([]byte, xwd.header.HeaderSize - 4) // read the rest of the header, we already have the first 4 bytes
+	buf = make([]byte, xwdHeaderSize - 4) // read the rest of the header, we already have the first value
 	_, err = r.Read(buf)
 	if err != nil {
 		log.Println("short header")
 		return nil, err
 	}
 
-	xwd.header.FileVersion = binary.BigEndian.Uint32(buf[4:8])
-	if xwd.header.FileVersion != 7 {
+	xwd.header.FileVersion = binary.BigEndian.Uint32(buf[0:4])
+	if xwd.header.FileVersion != xwdVersion {
 		return nil, errors.New("Unsupported xwd version " + strconv.FormatUint(uint64(xwd.header.FileVersion), 10))
 	}
 
-		/*PixmapFormat:      binary.BigEndian.Uint32(buf[8:12]),
-		PixmapDepth:       binary.BigEndian.Uint32(buf[12:16]),
-		PixmapWidth:       binary.BigEndian.Uint32(buf[16:20]),
-		PixmapHeight:      binary.BigEndian.Uint32(buf[20:24]),
-		XOffset:           binary.BigEndian.Uint32(buf[24:28]),
-		ByteOrder:         binary.BigEndian.Uint32(buf[28:32]),
-		BitmapUnit:        binary.BigEndian.Uint32(buf[32:36]),
-		BitmapBitOrder:    binary.BigEndian.Uint32(buf[36:40]),
-		BitmapPad:         binary.BigEndian.Uint32(buf[40:44]),
-		BitsPerPixel:      binary.BigEndian.Uint32(buf[44:48]),
-		BytesPerLine:      binary.BigEndian.Uint32(buf[48:52]),
-		VisualClass:       binary.BigEndian.Uint32(buf[52:56]),
-		RedMask:           binary.BigEndian.Uint32(buf[56:60]),
-		GreenMask:         binary.BigEndian.Uint32(buf[60:64]),
-		BlueMask:          binary.BigEndian.Uint32(buf[64:68]),
-		BitsPerRgb:        binary.BigEndian.Uint32(buf[68:72]),
-		NumberOfColors:    binary.BigEndian.Uint32(buf[72:76]),
-		ColorMapEntries:   binary.BigEndian.Uint32(buf[76:80]),
-		WindowWidth:       binary.BigEndian.Uint32(buf[80:84]),
-		WindowHeight:      binary.BigEndian.Uint32(buf[84:88]),
-		WindowX:           binary.BigEndian.Uint32(buf[88:92]),
-		WindowY:           binary.BigEndian.Uint32(buf[92:96]),
-		WindowBorderWidth: binary.BigEndian.Uint32(buf[96:100]),
-	}*/
+	xwd.header.PixmapFormat = binary.BigEndian.Uint32(buf[4:8])
+	if xwd.header.FileVersion != pixmapFormat {
+		return nil, errors.New("Unsupported pixmap format " + strconv.FormatUint(uint64(xwd.header.PixmapFormat), 10))
+	}
 
-	log.Println("header size:", xwd.header.HeaderSize)
+	xwd.header.PixmapDepth = binary.BigEndian.Uint32(buf[8:12])
+	xwd.header.PixmapWidth = binary.BigEndian.Uint32(buf[12:16])
+	xwd.header.PixmapHeight = binary.BigEndian.Uint32(buf[16:20])
+
+	xwd.header.XOffset = binary.BigEndian.Uint32(buf[20:24])
+	if xwd.header.XOffset != xOffset {
+		return nil, errors.New("Unsupported xoffset " + strconv.FormatUint(uint64(xwd.header.XOffset), 10))
+	}
+
+	xwd.header.ByteOrder = OrderFromUint32(binary.BigEndian.Uint32(buf[24:28]))
+	if xwd.header.ByteOrder == Invalid {
+		return nil, errors.New("Unsupported byte order " + strconv.FormatUint(uint64(binary.BigEndian.Uint32(buf[24:28])), 10))
+	}
+
+	xwd.header.BitmapUnit = binary.BigEndian.Uint32(buf[28:32])
+
+	xwd.header.BitmapBitOrder = OrderFromUint32(binary.BigEndian.Uint32(buf[32:36]))
+	if xwd.header.BitmapBitOrder == Invalid {
+		return nil, errors.New("Unsupported bit order " + strconv.FormatUint(uint64(binary.BigEndian.Uint32(buf[32:36])), 10))
+	}
+
+	xwd.header.BitmapPad = binary.BigEndian.Uint32(buf[36:40])
+	if xwd.header.BitmapPad != bitmapPad {
+		return nil, errors.New("Unsupported bitmapd pad " + strconv.FormatUint(uint64(xwd.header.BitmapPad), 10))
+	}
+
+	xwd.header.BitsPerPixel = binary.BigEndian.Uint32(buf[40:44])
+	xwd.header.BytesPerLine = binary.BigEndian.Uint32(buf[44:48])
+	xwd.header.VisualClass = binary.BigEndian.Uint32(buf[48:52])
+
+	xwd.header.RedMask = binary.BigEndian.Uint32(buf[52:56])
+	if xwd.header.RedMask == 0 {
+		return nil, errors.New("Red mask invalid")
+	}
+	xwd.header.GreenMask = binary.BigEndian.Uint32(buf[56:60])
+	if xwd.header.GreenMask == 0 {
+		return nil, errors.New("Green mask invalid")
+	}
+	xwd.header.BlueMask = binary.BigEndian.Uint32(buf[60:64])
+	if xwd.header.BlueMask == 0 {
+		return nil, errors.New("Blue mask invalid")
+	}
+
+	xwd.header.BitsPerRgb = binary.BigEndian.Uint32(buf[64:68])
+	xwd.header.NumberOfColors = binary.BigEndian.Uint32(buf[68:72])
+	xwd.header.ColorMapEntries = binary.BigEndian.Uint32(buf[72:76])
+	xwd.header.WindowWidth = binary.BigEndian.Uint32(buf[76:80])
+	xwd.header.WindowHeight = binary.BigEndian.Uint32(buf[80:84])
+	xwd.header.WindowX = binary.BigEndian.Uint32(buf[84:88])
+	xwd.header.WindowY = binary.BigEndian.Uint32(buf[88:92])
+	xwd.header.WindowBorderWidth = binary.BigEndian.Uint32(buf[92:96])
+
 	log.Println("header:", xwd.header)
 
 	// window name
-	windowName := make([]byte, xwd.header.HeaderSize-100)
-	_, err = r.Read(windowName)
+	buf = make([]byte, xwd.header.HeaderSize - xwdHeaderSize)
+	_, err = r.Read(buf)
 	if err != nil {
-		log.Println("missing window size")
+		log.Println("error reading window name")
 		return nil, err
 	}
+
+	// strip the null terminator:
+	end := xwd.header.HeaderSize - xwdHeaderSize - 1
+	if end < 0 {
+		end = 0
+	}
+	xwd.header.WindowName = string(buf[:end])
 
 	// not used?
 	colorMaps := make([]XWDColorMap, xwd.header.ColorMapEntries)
