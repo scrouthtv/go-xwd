@@ -12,6 +12,7 @@ The original version did convert the file into a paletted image with only 216 di
 
 What I changed:
  - added `go.mod`
+ - the original reader did not work with colormapped pixmaps. It always expected a raw pixmap.
  - reader does always assume that the color depth is 8bit (and as such reads wrong values)
  - reader fails on small files (e. g. `8colors.xwd`)
  - the reader would allocate a new byte buffer for each pixel (and not reuse the old one)
