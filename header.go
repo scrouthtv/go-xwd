@@ -21,7 +21,7 @@ const (
 type XWDFileHeader struct {
 	HeaderSize        uint32
 	FileVersion       uint32
-	PixmapFormat      uint32
+	PixmapFormat      uint32 /* XYBitmap, XYPixmap, ZPixmap */
 	PixmapDepth       uint32
 	PixmapWidth       uint32
 	PixmapHeight      uint32
@@ -45,6 +45,24 @@ type XWDFileHeader struct {
 	WindowY           uint32
 	WindowBorderWidth uint32
 	WindowName string
+}
+
+// IsMapped returns whether this image's data is colormapped
+// or written directly in raw into the image.
+func (h *XWDFileHeader) IsMapped() bool {
+	if h.ColorMapEntries == 0 {
+		return false
+	}
+	return h.NumberOfColors == h.ColorMapEntries
+}
+
+func (h *XWDFileHeader) ImageSize() uint32 {
+	// https://gitlab.freedesktop.org/xorg/app/xwud/-/blob/master/xwud.c#L1152-1159
+	if h.PixmapFormat == 2 {
+		return h.BytesPerLine * h.PixmapHeight
+	} else {
+		return h.BytesPerLine * h.PixmapHeight * h.PixmapDepth
+	}
 }
 
 // ReadHeader reads the header of an xwd image from r and returns the header or any error.
@@ -105,18 +123,10 @@ func ReadHeader(r io.Reader) (*XWDFileHeader, error) {
 	header.BytesPerLine = binary.BigEndian.Uint32(buf[44:48])
 	header.VisualClass = binary.BigEndian.Uint32(buf[48:52])
 
+	// masks are only set if the image is not colormapped
 	header.RedMask = binary.BigEndian.Uint32(buf[52:56])
-	if header.RedMask == 0 {
-		return nil, errors.New("Red mask invalid")
-	}
 	header.GreenMask = binary.BigEndian.Uint32(buf[56:60])
-	if header.GreenMask == 0 {
-		return nil, errors.New("Green mask invalid")
-	}
 	header.BlueMask = binary.BigEndian.Uint32(buf[60:64])
-	if header.BlueMask == 0 {
-		return nil, errors.New("Blue mask invalid")
-	}
 
 	header.BitsPerRgb = binary.BigEndian.Uint32(buf[64:68])
 	header.NumberOfColors = binary.BigEndian.Uint32(buf[68:72])
@@ -136,9 +146,9 @@ func ReadHeader(r io.Reader) (*XWDFileHeader, error) {
 	}
 
 	// strip the null terminator:
-	end := header.HeaderSize - xwdHeaderSize - 1
-	if end < 0 {
-		end = 0
+	end := header.HeaderSize - xwdHeaderSize
+	if end > 0 {
+		end--
 	}
 	header.WindowName = string(buf[:end])
 
