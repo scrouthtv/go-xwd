@@ -1,13 +1,10 @@
 package xwd
 
-import "image"
 import "image/color"
-import "image/color/palette"
-import "log"
 import "errors"
 import "fmt"
 import "io"
-import "encoding/binary"
+import "log"
 
 type XWDPixmap interface {
 	At(x, y int) color.Color
@@ -25,18 +22,21 @@ type xwdPixmapRaw struct {
 type xwdPixmapMapped struct {
 	header *XWDFileHeader
 	colors *XWDColorMap
-	pixels []uint32
+	pixels []uint8
 }
 
 func ReadPixmap(r io.Reader, h *XWDFileHeader, colors *XWDColorMap) (XWDPixmap, error) {
 	if h.IsMapped() {
+		log.Println("this is a mapped pixmap")
 		return readPixmapMapped(r, h, colors)
 	} else {
+		log.Println("this is a raw pixmap")
 		return readPixmapRaw(r, h)
 	}
 }
 
 func readPixmapRaw(r io.Reader, h *XWDFileHeader) (*xwdPixmapRaw, error) {
+	panic("not impl")
 	buf := make([]byte, h.BitsPerPixel)
 
 	var x, y uint32
@@ -49,16 +49,17 @@ func readPixmapRaw(r io.Reader, h *XWDFileHeader) (*xwdPixmapRaw, error) {
 		}
 	}
 
-	panic("not impl")
+	return nil, nil
 }
 
 func readPixmapMapped(r io.Reader, h *XWDFileHeader, colors *XWDColorMap) (*xwdPixmapMapped, error) {
 	pix := xwdPixmapMapped{}
 	pix.header = h
 	pix.colors = colors
-	pix.pixels = make([]uint32, h.PixmapWidth * h.PixmapHeight)
+	pix.pixels = make([]uint8, h.PixmapWidth * h.PixmapHeight)
 
-	buf := make([]byte, h.PixmapWidth * h.PixmapHeight * 1) // color map key is a uint8 which has 1 byte
+	log.Println("Going to read", h.PixmapWidth * h.PixmapHeight * colormapKeySize, "bytes")
+	buf := make([]byte, h.PixmapWidth * h.PixmapHeight * colormapKeySize)
 	_, err := r.Read(buf)
 	if err != nil {
 		return nil, err
@@ -69,8 +70,8 @@ func readPixmapMapped(r io.Reader, h *XWDFileHeader, colors *XWDColorMap) (*xwdP
 	for y = 0; y < h.PixmapHeight; y++ {
 		for x = 0; x < h.PixmapWidth; x++ {
 			i = y * h.PixmapHeight + x
-			// TODO use ByteOrder from the header
-			pix.pixels[i] = binary.BigEndian.Uint32(buf[i * colormapKeySize : (i+1) * colormapKeySize])
+			// TODO why is it a uint8 and not uin32 as suggested by the header??
+			pix.pixels[i] = uint8(buf[i * colormapKeySize])
 		}
 	}
 

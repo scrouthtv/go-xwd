@@ -29,7 +29,7 @@ func (c *XWDColor) RGBA() (r, g, b, a uint32) {
 
 type XWDColorMap []XWDColor
 
-const colormapKeySize = 1 // uint8, this is the size in the pixmap
+const colormapKeySize = 1 // uint8, this is the size in the pixmap, not in the colormap
 
 func (c *XWDColorMap) Get(i int) XWDColor {
 	return (*c)[i]
