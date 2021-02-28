@@ -1,4 +1,4 @@
-package github.com/scrouthtv/go-xwd
+package xwd
 
 import (
 	"encoding/binary"
@@ -6,9 +6,11 @@ import (
 	"image/color"
 	"image/color/palette"
 	"io"
+	"log"
 )
 
-// XWDFileHeader type
+// XWDFileHeader contains information
+// about an xwd image.
 type XWDFileHeader struct {
 	HeaderSize        uint32
 	FileVersion       uint32
@@ -37,7 +39,8 @@ type XWDFileHeader struct {
 	WindowBorderWidth uint32
 }
 
-// XWDColorMap type
+// XWDColorMap is the color map of this xwd image.
+// It is subject to removal.
 type XWDColorMap struct {
 	EntryNumber uint32
 	Red         uint16
@@ -47,14 +50,38 @@ type XWDColorMap struct {
 	Padding     uint8
 }
 
+// XWDImage groups together an xwd header and
+// a paletted image.
+// It's pointer implements all image functionality.
+type XWDImage struct {
+	header XWDFileHeader
+	image *image.Paletted
+}
+
+func (xwd *XWDImage) At(x, y int) color.Color {
+	return xwd.image.At(x, y)
+}
+
+func (xwd *XWDImage) Bounds() image.Rectangle {
+	return image.Rect(0, 0, int(xwd.header.PixmapWidth), int(xwd.header.PixmapHeight))
+}
+
+func (xwd *XWDImage) ColorModel() color.Model {
+	return color.RGBAModel
+}
+
 // Decode reads a XWD image from r and returns it as an image.Image.
 func Decode(r io.Reader) (img image.Image, err error) {
 	buf := make([]byte, 100)
 	_, err = r.Read(buf)
 	if err != nil {
+		log.Println("short header")
 		return
 	}
-	header := XWDFileHeader{
+
+	xwd := XWDImage{}
+
+	xwd.header = XWDFileHeader{
 		HeaderSize:        binary.BigEndian.Uint32(buf[0:4]),
 		FileVersion:       binary.BigEndian.Uint32(buf[4:8]),
 		PixmapFormat:      binary.BigEndian.Uint32(buf[8:12]),
@@ -81,15 +108,21 @@ func Decode(r io.Reader) (img image.Image, err error) {
 		WindowY:           binary.BigEndian.Uint32(buf[92:96]),
 		WindowBorderWidth: binary.BigEndian.Uint32(buf[96:100]),
 	}
+
+	log.Println("header size:", xwd.header.HeaderSize)
+	log.Println("header:", xwd.header)
+
 	// window name
-	windowName := make([]byte, header.HeaderSize-100)
+	windowName := make([]byte, xwd.header.HeaderSize-100)
 	_, err = r.Read(windowName)
 	if err != nil {
+		log.Println("missing window size")
 		return
 	}
+
 	// not used?
-	colorMaps := make([]XWDColorMap, header.ColorMapEntries)
-	for i := 0; i < int(header.ColorMapEntries); i++ {
+	colorMaps := make([]XWDColorMap, xwd.header.ColorMapEntries)
+	for i := 0; i < int(xwd.header.ColorMapEntries); i++ {
 		buf := make([]byte, 12)
 		_, err = r.Read(buf)
 		if err != nil {
@@ -104,22 +137,29 @@ func Decode(r io.Reader) (img image.Image, err error) {
 			Padding:     uint8(buf[11]),
 		}
 	}
+
+	rect := image.Rect(0, 0, int(xwd.header.PixmapWidth), int(xwd.header.PixmapHeight))
+
 	// create PalettedImage
-	rect := image.Rect(0, 0, int(header.PixmapWidth), int(header.PixmapHeight))
-	paletted := image.NewPaletted(rect, palette.WebSafe)
-	for x := 0; x < int(header.PixmapHeight); x++ {
-		for y := 0; y < int(header.PixmapWidth); y++ {
+	xwd.image = image.NewPaletted(rect, palette.WebSafe)
+	for x := 0; x < int(xwd.header.PixmapHeight); x++ {
+		for y := 0; y < int(xwd.header.PixmapWidth); y++ {
 			buf := make([]byte, 4)
 			_, err = r.Read(buf)
 			if err != nil {
+				log.Println("error reading pixel @", x, y)
 				return
 			}
-			paletted.Set(y, x, color.RGBA{
+			if x == 5 && y == 5 {
+				log.Println("At position 5/5:", uint8(buf[2]), uint8(buf[1]), uint8(buf[0]))
+			}
+			xwd.image.Set(y, x, color.RGBA{
 				R: uint8(buf[2]),
 				G: uint8(buf[1]),
 				B: uint8(buf[0]),
+				A: 255,
 			})
 		}
 	}
-	return paletted, nil
+	return &xwd, nil
 }
