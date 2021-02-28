@@ -58,6 +58,10 @@ type XWDImage struct {
 	image *image.Paletted
 }
 
+func (xwd *XWDImage) Header() XWDFileHeader {
+	return xwd.header
+}
+
 func (xwd *XWDImage) At(x, y int) color.Color {
 	return xwd.image.At(x, y)
 }
