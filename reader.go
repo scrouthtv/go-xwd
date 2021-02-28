@@ -7,6 +7,8 @@ import (
 	"image/color/palette"
 	"io"
 	"log"
+	"errors"
+	"strconv"
 )
 
 // XWDFileHeader contains information
@@ -75,20 +77,32 @@ func (xwd *XWDImage) ColorModel() color.Model {
 }
 
 // Decode reads a XWD image from r and returns it as an image.Image.
-func Decode(r io.Reader) (img image.Image, err error) {
-	buf := make([]byte, 100)
+func Decode(r io.Reader) (image.Image, error) {
+	xwd := XWDImage{}
+
+	buf := make([]byte, 4)
+	_, err := r.Read(buf)
+	if err != nil {
+		log.Println("no header size information")
+		return nil, err
+	}
+
+	xwd.header.HeaderSize = binary.BigEndian.Uint32(buf[0:4])
+	log.Println("header size: ", xwd.header.HeaderSize)
+
+	buf = make([]byte, xwd.header.HeaderSize - 4) // read the rest of the header, we already have the first 4 bytes
 	_, err = r.Read(buf)
 	if err != nil {
 		log.Println("short header")
-		return
+		return nil, err
 	}
 
-	xwd := XWDImage{}
+	xwd.header.FileVersion = binary.BigEndian.Uint32(buf[4:8])
+	if xwd.header.FileVersion != 7 {
+		return nil, errors.New("Unsupported xwd version " + strconv.FormatUint(uint64(xwd.header.FileVersion), 10))
+	}
 
-	xwd.header = XWDFileHeader{
-		HeaderSize:        binary.BigEndian.Uint32(buf[0:4]),
-		FileVersion:       binary.BigEndian.Uint32(buf[4:8]),
-		PixmapFormat:      binary.BigEndian.Uint32(buf[8:12]),
+		/*PixmapFormat:      binary.BigEndian.Uint32(buf[8:12]),
 		PixmapDepth:       binary.BigEndian.Uint32(buf[12:16]),
 		PixmapWidth:       binary.BigEndian.Uint32(buf[16:20]),
 		PixmapHeight:      binary.BigEndian.Uint32(buf[20:24]),
@@ -111,7 +125,7 @@ func Decode(r io.Reader) (img image.Image, err error) {
 		WindowX:           binary.BigEndian.Uint32(buf[88:92]),
 		WindowY:           binary.BigEndian.Uint32(buf[92:96]),
 		WindowBorderWidth: binary.BigEndian.Uint32(buf[96:100]),
-	}
+	}*/
 
 	log.Println("header size:", xwd.header.HeaderSize)
 	log.Println("header:", xwd.header)
@@ -121,7 +135,7 @@ func Decode(r io.Reader) (img image.Image, err error) {
 	_, err = r.Read(windowName)
 	if err != nil {
 		log.Println("missing window size")
-		return
+		return nil, err
 	}
 
 	// not used?
@@ -130,7 +144,7 @@ func Decode(r io.Reader) (img image.Image, err error) {
 		buf := make([]byte, 12)
 		_, err = r.Read(buf)
 		if err != nil {
-			return
+			return nil, err
 		}
 		colorMaps[i] = XWDColorMap{
 			EntryNumber: binary.BigEndian.Uint32(buf[0:4]),
@@ -152,7 +166,7 @@ func Decode(r io.Reader) (img image.Image, err error) {
 			_, err = r.Read(buf)
 			if err != nil {
 				log.Println("error reading pixel @", x, y)
-				return
+				return nil, err
 			}
 			if x == 5 && y == 5 {
 				log.Println("At position 5/5:", uint8(buf[2]), uint8(buf[1]), uint8(buf[0]))
