@@ -65,13 +65,13 @@ func readPixmapMapped(r io.Reader, h *XWDFileHeader, colors *XWDColorMap) (*xwdP
 		return nil, err
 	}
 
-	var i uint32
+	var i uint32 = 0
 	var x, y uint32
 	for y = 0; y < h.PixmapHeight; y++ {
 		for x = 0; x < h.PixmapWidth; x++ {
-			i = y * h.PixmapHeight + x
 			// TODO why is it a uint8 and not uin32 as suggested by the header??
 			pix.pixels[i] = uint8(buf[i * colormapKeySize])
+			i++
 		}
 	}
 

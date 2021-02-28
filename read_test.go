@@ -7,7 +7,7 @@ import "fmt"
 
 import _ "embed"
 
-//go:embed 8colors.xwd
+//go:embed 500colors.xwd
 var xwd8colors []byte
 
 func TestHeader(t *testing.T) {
@@ -34,7 +34,7 @@ func TestHeader(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Log(p.At(0, 0))
+	t.Log(p.At(3, 1))
 
 	/*t.Logf("\nPixmap (%d bytes):\n", len(*p))
 	t.Logf("%x\n", *p)*/
