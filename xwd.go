@@ -10,8 +10,9 @@ import (
 // a paletted image.
 // It's pointer type implements all image.Image functionality.
 type XWDImage struct {
-	header XWDFileHeader
-	image *image.Paletted
+	header   XWDFileHeader
+	colormap XWDColorMap
+	image    XWDPixmap
 }
 
 func (xwd *XWDImage) Header() XWDFileHeader {
@@ -31,6 +32,10 @@ func (xwd *XWDImage) ColorModel() color.Model {
 }
 
 // Decode reads a XWD image from r and returns it as an image.Image.
+// Reading happens in three steps:
+// 1. Read the header (including the window name).
+// 2. Read the colormap.
+// 3. Read the buffer / pixmap.
 func Decode(r io.Reader) (image.Image, error) {
 	//xwd := XWDImage{}
 
