@@ -2,19 +2,19 @@ package xwd
 
 import (
 	"encoding/binary"
-	"io"
 	"errors"
-	"strconv"
 	"image"
 	"image/color"
+	"io"
+	"strconv"
 )
 
 const (
-	xwdVersion = 7
+	xwdVersion    = 7
 	xwdHeaderSize = 100 // size of the header without the window name
 
 	pixmapFormat = 2 // ZPixmap
-	xOffset = 0 // "number of pixels offset in X direction", idk
+	xOffset      = 0 // "number of pixels offset in X direction", idk
 )
 
 // FileHeader contains information
@@ -45,7 +45,7 @@ type FileHeader struct {
 	WindowX           uint32
 	WindowY           uint32
 	WindowBorderWidth uint32
-	WindowName string
+	WindowName        string
 }
 
 // IsMapped returns whether this image's data is colormapped
@@ -60,8 +60,8 @@ func (h *FileHeader) IsMapped() bool {
 func (h *FileHeader) Config() image.Config {
 	return image.Config{
 		ColorModel: color.RGBAModel,
-		Width: int(h.PixmapWidth),
-		Height: int(h.PixmapHeight),
+		Width:      int(h.PixmapWidth),
+		Height:     int(h.PixmapHeight),
 	}
 }
 
@@ -80,7 +80,7 @@ func ReadHeader(r io.Reader) (*FileHeader, error) {
 	header.HeaderSize = binary.BigEndian.Uint32(buf[0:4])
 	debugf("header size: %d", header.HeaderSize)
 
-	buf = make([]byte, xwdHeaderSize - 4) // read the rest of the header, we already have the first value
+	buf = make([]byte, xwdHeaderSize-4) // read the rest of the header, we already have the first value
 	_, err = r.Read(buf)
 	if err != nil {
 		debugf("error: short header")
@@ -89,12 +89,12 @@ func ReadHeader(r io.Reader) (*FileHeader, error) {
 
 	header.FileVersion = binary.BigEndian.Uint32(buf[0:4])
 	if header.FileVersion != xwdVersion {
-		return nil, errors.New("Unsupported xwd version " + strconv.FormatUint(uint64(header.FileVersion), 10))
+		return nil, &UnsupportedError{"xwd version", i32toa(header.FileVersion)}
 	}
 
 	header.PixmapFormat = binary.BigEndian.Uint32(buf[4:8])
 	if header.PixmapFormat != pixmapFormat {
-		return nil, errors.New("Unsupported pixmap format " + strconv.FormatUint(uint64(header.PixmapFormat), 10))
+		return nil, &UnsupportedError{"pixmap format", i32toa(header.PixmapFormat)}
 	}
 
 	header.PixmapDepth = binary.BigEndian.Uint32(buf[8:12])
@@ -103,19 +103,19 @@ func ReadHeader(r io.Reader) (*FileHeader, error) {
 
 	header.XOffset = binary.BigEndian.Uint32(buf[20:24])
 	if header.XOffset != xOffset {
-		return nil, errors.New("Unsupported xoffset " + strconv.FormatUint(uint64(header.XOffset), 10))
+		return nil, &UnsupportedError{"xoffset", i32toa(header.XOffset)}
 	}
 
 	header.ByteOrder = OrderFromUint32(binary.BigEndian.Uint32(buf[24:28]))
 	if header.ByteOrder != BigEndian {
-		return nil, errors.New("Unsupported byte order " + strconv.FormatUint(uint64(binary.BigEndian.Uint32(buf[24:28])), 10))
+		return nil, &UnsupportedError{"byte order", i32toa(binary.BigEndian.Uint32(buf[24:28]))}
 	}
 
 	header.BitmapUnit = binary.BigEndian.Uint32(buf[28:32])
 
 	header.BitmapBitOrder = OrderFromUint32(binary.BigEndian.Uint32(buf[32:36]))
 	if header.BitmapBitOrder != BigEndian {
-		return nil, errors.New("Unsupported bit order " + strconv.FormatUint(uint64(binary.BigEndian.Uint32(buf[32:36])), 10))
+		return nil, &UnsupportedError{"bit order", i32toa(binary.BigEndian.Uint32(buf[32:36]))}
 	}
 
 	header.BitmapPad = binary.BigEndian.Uint32(buf[36:40])
@@ -138,7 +138,7 @@ func ReadHeader(r io.Reader) (*FileHeader, error) {
 	header.WindowBorderWidth = binary.BigEndian.Uint32(buf[92:96])
 
 	// window name
-	buf = make([]byte, header.HeaderSize - xwdHeaderSize)
+	buf = make([]byte, header.HeaderSize-xwdHeaderSize)
 	_, err = r.Read(buf)
 	if err != nil {
 		debugf("error reading window name")
