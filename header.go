@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	xwdVersion    = 7
-	xwdHeaderSize = 100 // size of the header without the window name
+	xwdVersion        = 7
+	xwdHeaderSize     = 100 // size of the header without the window name
+	xwdHeaderPropSize = 4   // uint32
 
 	pixmapFormat = 2 // ZPixmap
 	xOffset      = 0 // "number of pixels offset in X direction", idk
@@ -52,6 +53,7 @@ func (h *FileHeader) IsMapped() bool {
 	if h.ColorMapEntries == 0 {
 		return false
 	}
+
 	return h.NumberOfColors == h.ColorMapEntries
 }
 
@@ -66,9 +68,10 @@ func (h *FileHeader) Config() image.Config {
 // ReadHeader reads the header of an xwd image from r and returns the header or any error.
 // The entire header gets read from the reader.
 func ReadHeader(r io.Reader) (*FileHeader, error) {
-	header := FileHeader{}
+	var header FileHeader
 
 	buf := make([]byte, 4)
+
 	_, err := r.Read(buf)
 	if err != nil {
 		return nil, &IOError{err, "reading header size"}
@@ -77,7 +80,8 @@ func ReadHeader(r io.Reader) (*FileHeader, error) {
 	header.HeaderSize = binary.BigEndian.Uint32(buf[0:4])
 	debugf("header size: %d", header.HeaderSize)
 
-	buf = make([]byte, xwdHeaderSize-4) // read the rest of the header, we already have the first value
+	buf = make([]byte, xwdHeaderSize-xwdHeaderPropSize) // read the rest of the header, we already have the first value
+
 	_, err = r.Read(buf)
 	if err != nil {
 		return nil, &IOError{err, "reading header"}
@@ -133,8 +137,9 @@ func ReadHeader(r io.Reader) (*FileHeader, error) {
 	header.WindowY = binary.BigEndian.Uint32(buf[88:92])
 	header.WindowBorderWidth = binary.BigEndian.Uint32(buf[92:96])
 
-	// window name
+	// read the window name
 	buf = make([]byte, header.HeaderSize-xwdHeaderSize)
+
 	_, err = r.Read(buf)
 	if err != nil {
 		return nil, &IOError{err, "reading window name"}
@@ -145,6 +150,7 @@ func ReadHeader(r io.Reader) (*FileHeader, error) {
 	if end > 0 {
 		end--
 	}
+
 	header.WindowName = string(buf[:end])
 
 	return &header, nil

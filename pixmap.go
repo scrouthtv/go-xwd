@@ -32,7 +32,7 @@ func ReadPixmap(r io.Reader, h *FileHeader, colors *ColorMap) (Pixmap, error) {
 	if h.IsMapped() {
 		debugf("this is a mapped pixmap")
 		return readPixmapMapped(r, h, colors)
-	} else {
+	} else { //nolint:golint,revive // looks way better like this
 		debugf("this is a raw pixmap")
 		return readPixmapRaw(r, h)
 	}
@@ -52,14 +52,16 @@ func readPixmapRaw(r io.Reader, h *FileHeader) (*pixmapRaw, error) {
 
 	var rs, gs, bs int = shiftwidth(h.RedMask), shiftwidth(h.GreenMask), shiftwidth(h.BlueMask)
 
-	var i uint32 = 0
+	var i uint32
 	var x, y uint32
+
 	for y = 0; y < h.PixmapHeight; y++ {
 		for x = 0; x < h.PixmapWidth; x++ {
 			_, err := r.Read(buf[1:4])
 			if err != nil {
 				return nil, &IOError{err, "reading pixmap"}
 			}
+
 			cu = binary.BigEndian.Uint32(buf)
 			cl = Color{
 				Pixel: i, Flags: 7, Padding: 0,
@@ -70,6 +72,7 @@ func readPixmapRaw(r io.Reader, h *FileHeader) (*pixmapRaw, error) {
 			pixmap.pixels[i] = cl
 			i++
 		}
+
 		_, err := r.Read(discard) // discard line ending
 		if err != nil {
 			return nil, &IOError{err, "reading pixmap"}
@@ -88,6 +91,7 @@ func shiftwidth(mask uint32) int {
 		if mask&0b1 != 0 {
 			return i
 		}
+
 		mask = mask >> 1
 	}
 
@@ -95,23 +99,23 @@ func shiftwidth(mask uint32) int {
 }
 
 func readPixmapMapped(r io.Reader, h *FileHeader, colors *ColorMap) (*pixmapMapped, error) {
-	pix := pixmapMapped{}
+	var pix pixmapMapped
 	pix.header = h
 	pix.colors = colors
 	pix.pixels = make([]uint8, h.PixmapWidth*h.PixmapHeight)
 
 	debugf("Going to read %d bytes", h.PixmapWidth*h.PixmapHeight*colormapKeySize)
 	buf := make([]byte, h.PixmapWidth*h.PixmapHeight*colormapKeySize)
+
 	_, err := r.Read(buf)
 	if err != nil {
 		return nil, &IOError{err, "reading pixmap"}
 	}
 
-	var i uint32 = 0
-	var x, y uint32
+	var i, x, y uint32
 	for y = 0; y < h.PixmapHeight; y++ {
 		for x = 0; x < h.PixmapWidth; x++ {
-			pix.pixels[i] = uint8(buf[i*colormapKeySize])
+			pix.pixels[i] = buf[i*colormapKeySize]
 			i++
 		}
 	}
@@ -134,6 +138,7 @@ func (p *pixmapRaw) ColorModel() color.Model {
 func (p *pixmapMapped) At(x, y int) color.Color {
 	id := p.pixels[y*int(p.header.PixmapWidth)+x]
 	c := p.colors.Get(int(id))
+
 	return &c
 }
 

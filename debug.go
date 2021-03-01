@@ -54,6 +54,8 @@ func (o Order) String() string {
 		return "big endian (0)"
 	case LittleEndian:
 		return "little endian (1)"
+	case Invalid:
+		return "invalid"
 	default:
 		return "invalid (" + strconv.Itoa(int(o)) + ")"
 	}
@@ -90,5 +92,6 @@ func imageToString(i image.Image) string {
 func ColorEqual(a color.Color, b color.Color) bool {
 	ar, ag, ab, aa := a.RGBA()
 	br, bg, bb, ba := b.RGBA()
+
 	return ar == br && ag == bg && ab == bb && aa == ba
 }

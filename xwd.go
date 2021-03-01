@@ -47,6 +47,7 @@ func DecodeConfig(r io.Reader) (image.Config, error) {
 	if err != nil {
 		return image.Config{}, err
 	}
+
 	return hdr.Config(), nil
 }
 

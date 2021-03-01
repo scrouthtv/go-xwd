@@ -17,6 +17,7 @@ var png8colors []byte
 
 func TestHeader(t *testing.T) {
 	rdr := bytes.NewReader(xwd8colors)
+
 	hdr, err := ReadHeader(rdr)
 	if err != nil {
 		t.Fatal(err)
@@ -30,6 +31,7 @@ func TestHeader(t *testing.T) {
 	}
 
 	t.Logf("Color map (%d entries):", len(colors))
+
 	for _, c := range colors {
 		t.Log(c.String())
 	}
@@ -67,6 +69,7 @@ func TestHeader(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	err = png.Encode(dump, p)
 	if err != nil {
 		t.Fatal(err)

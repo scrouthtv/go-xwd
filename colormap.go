@@ -40,20 +40,22 @@ func ReadColorMap(r io.Reader, h *FileHeader) (ColorMap, error) {
 
 	// Use NumOfColors instead of ColorMapEntries: https://gitlab.freedesktop.org/xorg/app/xwd/-/blob/master/xwd.c#L489
 	var i uint32
-	buf := make([]byte, colorSize)
 	var err error
+
+	buf := make([]byte, colorSize)
+
 	for i = 0; i < h.NumberOfColors; i++ {
 		_, err = r.Read(buf)
 		if err != nil {
 			return nil, &IOError{err, "reading colormap"}
 		}
+
 		m[i] = Color{
 			binary.BigEndian.Uint32(buf[0:4]), // << 8 seems to be wrong
 			binary.BigEndian.Uint16(buf[4:6]),
 			binary.BigEndian.Uint16(buf[6:8]),
 			binary.BigEndian.Uint16(buf[8:10]),
-			uint8(buf[10]),
-			uint8(buf[11]),
+			buf[10], buf[11],
 		}
 	}
 
