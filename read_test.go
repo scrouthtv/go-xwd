@@ -2,13 +2,16 @@ package xwd
 
 import "testing"
 import "bytes"
-import "strings"
-import "fmt"
+import "image/png"
+import "os"
 
 import _ "embed"
 
-//go:embed 500colors.xwd
+//go:embed 8colors.xwd
 var xwd8colors []byte
+
+//go:embed 8colors.png
+var png8colors []byte
 
 func TestHeader(t *testing.T) {
 	rdr := bytes.NewReader(xwd8colors)
@@ -34,17 +37,33 @@ func TestHeader(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var x, y uint32
-	var out strings.Builder
-	out.WriteString("\n")
-	for y = 0; y < hdr.PixmapHeight; y++ {
-		for x = 0; x < hdr.PixmapWidth; x++ {
-			r, g, b, _ := p.At(int(x), int(y)).RGBA()
-			sr, sg, sb := uint8(r >> 24), uint8(g >> 24), uint8(b >> 24)
-			fmt.Fprintf(&out, "\x1b[48;2;%d;%d;%dm  ", sr, sg, sb)
-		}
-		out.WriteString("\x1b[49m\n")
+	t.Log("\n" + imageToString(p))
+
+	pngImage, err := png.Decode(bytes.NewReader(png8colors))
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	t.Log(out.String())
+	t.Log("\n" + imageToString(pngImage))
+
+	for x := 0; x < 4; x++ {
+		for y := 0; y < 2; y++ {
+			if !ColorEqual(p.At(x, y), pngImage.At(x, y)) {
+				ir, ig, ib, ia := p.At(x, y).RGBA()
+				sr, sg, sb, sa := pngImage.At(x, y).RGBA()
+				t.Errorf("Colors @ %d/%d differ: should be %d, %d, %d, %d; is %d, %d, %d, %d",
+					x, y, sr, sg, sb, sa, ir, ig, ib, ia)
+			}
+		}
+	}
+
+	if !t.Failed() {
+		t.Log("All colors equal")
+	}
+
+	dump, err := os.Create("dump.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	png.Encode(dump, p)
 }

@@ -3,6 +3,8 @@ package xwd
 import "strings"
 import "fmt"
 import "strconv"
+import "image"
+import "image/color"
 
 // String creates a textual representation of this header.
 // It is comparable to the output of xwud -dumpheaders.
@@ -60,4 +62,28 @@ func hecateHex(p []byte) string {
 	}
 
 	return out.String()
+}
+
+func imageToString(i image.Image) string {
+	var out strings.Builder
+
+	minx, miny := i.Bounds().Min.X, i.Bounds().Min.Y
+	maxx, maxy := i.Bounds().Max.X, i.Bounds().Max.Y
+
+	for y := miny; y < maxy; y++ {
+		for x := minx; x < maxx; x++ {
+			r, g, b, _ := i.At(x, y).RGBA()
+			sr, sg, sb := uint8(r >> 8), uint8(g >> 8), uint8(b >> 8)
+			fmt.Fprintf(&out, "\x1b[48;2;%d;%d;%dm  ", sr, sg, sb)
+		}
+		out.WriteString("\x1b[49m\n")
+	}
+
+	return out.String()
+}
+
+func ColorEqual(a color.Color, b color.Color) bool {
+	ar, ag, ab, aa := a.RGBA()
+	br, bg, bb, ba := b.RGBA()
+	return ar == br && ag == bg && ab == bb && aa == ba
 }
