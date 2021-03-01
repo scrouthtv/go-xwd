@@ -5,6 +5,7 @@ import "errors"
 import "fmt"
 import "io"
 import "log"
+import "encoding/binary"
 
 type XWDPixmap interface {
 	At(x, y int) color.Color
@@ -36,20 +37,63 @@ func ReadPixmap(r io.Reader, h *XWDFileHeader, colors *XWDColorMap) (XWDPixmap, 
 }
 
 func readPixmapRaw(r io.Reader, h *XWDFileHeader) (*xwdPixmapRaw, error) {
-	panic("not impl")
-	buf := make([]byte, h.BitsPerPixel)
+	if h.BitsPerPixel != 24 {
+		return nil, errors.New("only 24 bpp supporetd")
+	}
 
+	buf := make([]byte, 4)
+	var cu uint32
+	var cl XWDColor
+
+	var pixmap xwdPixmapRaw = xwdPixmapRaw{h, make([]XWDColor, h.PixmapWidth * h.PixmapHeight)}
+
+	var rs, gs, bs int = shiftwidth(h.RedMask), shiftwidth(h.GreenMask), shiftwidth(h.BlueMask)
+
+	var i uint32 = 0
 	var x, y uint32
-	for x = 0; x < h.PixmapWidth; x++ {
-		for y = 0; y < h.PixmapHeight; y++ {
-			_, err := r.Read(buf)
+	for y = 0; y < h.PixmapHeight; y++ {
+		for x = 0; x < h.PixmapWidth; x++ {
+			_, err := r.Read(buf[1:4])
 			if err != nil {
 				return nil, errors.New(fmt.Sprintf("error reading %d %d: %s", x, y, err.Error()))
 			}
+			cu = binary.BigEndian.Uint32(buf)
+			cl = XWDColor{
+				Pixel: i, Flags: 7, Padding: 0,
+				Red: uint16(((cu & h.RedMask) >> rs) << 8),
+				Green: uint16(((cu & h.GreenMask) >> gs) << 8),
+				Blue: uint16(((cu & h.BlueMask) >> bs) << 8),
+			}
+			pixmap.pixels[i] = cl
+			if y == 0 && x > 20 {
+				fmt.Println(x, "/", y, ": Read", hecateHex(buf[1:4]))
+			}
+			if y == 1 && x < 5 {
+				fmt.Println(x, "/", y, ": Read", hecateHex(buf[1:4]))
+				fmt.Println("set", x, y, "(", i, ")")
+				fmt.Println(cl.String())
+			}
+			i++
 		}
+		r.Read(buf[1:3]) // discard two bytes
 	}
 
-	return nil, nil
+	return &pixmap, nil
+}
+
+func shiftwidth(mask uint32) int {
+	if mask == 0 {
+		return 0
+	}
+
+	for i := 0; i < 32; i++ {
+		if mask & 0b1 != 0 {
+			return i
+		}
+		mask = mask >> 1
+	}
+
+	return 0
 }
 
 func readPixmapMapped(r io.Reader, h *XWDFileHeader, colors *XWDColorMap) (*xwdPixmapMapped, error) {

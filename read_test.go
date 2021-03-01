@@ -39,6 +39,7 @@ func TestHeader(t *testing.T) {
 	/*t.Logf("\nPixmap (%d bytes):\n", len(*p))
 	t.Logf("%x\n", *p)*/
 
+	fmt.Println(p.At(0, 0).(*XWDColor).String())
 	var x, y uint32
 	var out strings.Builder
 	for y = 0; y < hdr.PixmapHeight; y++ {
@@ -46,9 +47,14 @@ func TestHeader(t *testing.T) {
 			r, g, b, _ := p.At(int(x), int(y)).RGBA()
 			sr, sg, sb := uint8(r >> 24), uint8(g >> 24), uint8(b >> 24)
 			fmt.Fprintf(&out, "\x1b[48;2;%d;%d;%dm  ", sr, sg, sb)
+			if x == 1 && y == 0 {
+				fmt.Println(sr, sg, sb)
+			}
 		}
 		out.WriteString("\x1b[49m\n")
 	}
 
+	//if false {
 	fmt.Println(out.String())
+//}
 }
