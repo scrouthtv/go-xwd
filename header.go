@@ -17,9 +17,9 @@ const (
 	xOffset = 0 // "number of pixels offset in X direction", idk
 )
 
-// XWDFileHeader contains information
+// FileHeader contains information
 // about an xwd image.
-type XWDFileHeader struct {
+type FileHeader struct {
 	HeaderSize        uint32
 	FileVersion       uint32
 	PixmapFormat      uint32 /* XYBitmap, XYPixmap, ZPixmap */
@@ -50,23 +50,14 @@ type XWDFileHeader struct {
 
 // IsMapped returns whether this image's data is colormapped
 // or written directly in raw into the image.
-func (h *XWDFileHeader) IsMapped() bool {
+func (h *FileHeader) IsMapped() bool {
 	if h.ColorMapEntries == 0 {
 		return false
 	}
 	return h.NumberOfColors == h.ColorMapEntries
 }
 
-func (h *XWDFileHeader) ImageSize() uint32 {
-	// https://gitlab.freedesktop.org/xorg/app/xwud/-/blob/master/xwud.c#L1152-1159
-	if h.PixmapFormat == 2 {
-		return h.BytesPerLine * h.PixmapHeight
-	} else {
-		return h.BytesPerLine * h.PixmapHeight * h.PixmapDepth
-	}
-}
-
-func (h *XWDFileHeader) Config() image.Config {
+func (h *FileHeader) Config() image.Config {
 	return image.Config{
 		ColorModel: color.RGBAModel,
 		Width: int(h.PixmapWidth),
@@ -76,8 +67,8 @@ func (h *XWDFileHeader) Config() image.Config {
 
 // ReadHeader reads the header of an xwd image from r and returns the header or any error.
 // The entire header gets read from the reader.
-func ReadHeader(r io.Reader) (*XWDFileHeader, error) {
-	header := XWDFileHeader{}
+func ReadHeader(r io.Reader) (*FileHeader, error) {
+	header := FileHeader{}
 
 	buf := make([]byte, 4)
 	_, err := r.Read(buf)

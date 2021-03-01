@@ -8,7 +8,7 @@ import "image/color"
 
 // String creates a textual representation of this header.
 // It is comparable to the output of xwud -dumpheaders.
-func (h *XWDFileHeader) String() string {
+func (h *FileHeader) String() string {
 	var out strings.Builder
 
 	fmt.Fprintf(&out, "window name:        %s\n", h.WindowName)
@@ -42,7 +42,7 @@ func (h *XWDFileHeader) String() string {
 	return out.String()
 }
 
-func (c *XWDColor) String() string {
+func (c *Color) String() string {
 	return fmt.Sprintf("Color %d: %d/%d/%d (%d)", c.Pixel, c.Red, c.Green, c.Blue, c.Flags)
 }
 

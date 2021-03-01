@@ -65,5 +65,8 @@ func TestHeader(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	png.Encode(dump, p)
+	err = png.Encode(dump, p)
+	if err != nil {
+		t.Fatal(err)
+	}
 }

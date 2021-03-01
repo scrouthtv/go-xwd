@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-// any header size (uint32), fileversion (uint32) == 7
+// Matches any header size (uint32), fileversion (uint32) == 7.
 const xwdHeader = "????0007"
 
 // DoDebug indicates whether `go-xwd` should print any debugging messages.

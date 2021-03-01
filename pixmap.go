@@ -7,28 +7,28 @@ import "fmt"
 import "io"
 import "encoding/binary"
 
-type XWDPixmap interface {
+type Pixmap interface {
 	At(x, y int) color.Color
 	Bounds() image.Rectangle
 	ColorModel() color.Model
 }
 
-// xwdPixmapRaw is used if the image's data is stored raw, as in each pixel
+// pixmapRaw is used if the image's data is stored raw, as in each pixel
 // stores it's own color.
-type xwdPixmapRaw struct {
-	header *XWDFileHeader
-	pixels []XWDColor
+type pixmapRaw struct {
+	header *FileHeader
+	pixels []Color
 }
 
-// xwdPixmapMapped is used if the image's data is colormapped, e.g. 
+// pixmapMapped is used if the image's data is colormapped, e.g. 
 // each pixel is a "pointer" to a value of the corresponding color map.
-type xwdPixmapMapped struct {
-	header *XWDFileHeader
-	colors *XWDColorMap
+type pixmapMapped struct {
+	header *FileHeader
+	colors *ColorMap
 	pixels []uint8
 }
 
-func ReadPixmap(r io.Reader, h *XWDFileHeader, colors *XWDColorMap) (XWDPixmap, error) {
+func ReadPixmap(r io.Reader, h *FileHeader, colors *ColorMap) (Pixmap, error) {
 	if h.IsMapped() {
 		debugf("this is a mapped pixmap")
 		return readPixmapMapped(r, h, colors)
@@ -38,7 +38,7 @@ func ReadPixmap(r io.Reader, h *XWDFileHeader, colors *XWDColorMap) (XWDPixmap, 
 	}
 }
 
-func readPixmapRaw(r io.Reader, h *XWDFileHeader) (*xwdPixmapRaw, error) {
+func readPixmapRaw(r io.Reader, h *FileHeader) (*pixmapRaw, error) {
 	if h.BitsPerPixel != 24 {
 		return nil, errors.New("only 24 bpp supporetd")
 	}
@@ -46,9 +46,9 @@ func readPixmapRaw(r io.Reader, h *XWDFileHeader) (*xwdPixmapRaw, error) {
 	buf := make([]byte, 4)
 	discard := make([]byte, h.BytesPerLine - h.WindowWidth * h.BitsPerPixel / 8)
 	var cu uint32
-	var cl XWDColor
+	var cl Color
 
-	var pixmap xwdPixmapRaw = xwdPixmapRaw{h, make([]XWDColor, h.PixmapWidth * h.PixmapHeight)}
+	pixmap := pixmapRaw{h, make([]Color, h.PixmapWidth * h.PixmapHeight)}
 
 	var rs, gs, bs int = shiftwidth(h.RedMask), shiftwidth(h.GreenMask), shiftwidth(h.BlueMask)
 
@@ -61,7 +61,7 @@ func readPixmapRaw(r io.Reader, h *XWDFileHeader) (*xwdPixmapRaw, error) {
 				return nil, errors.New(fmt.Sprintf("error reading %d %d: %s", x, y, err.Error()))
 			}
 			cu = binary.BigEndian.Uint32(buf)
-			cl = XWDColor{
+			cl = Color{
 				Pixel: i, Flags: 7, Padding: 0,
 				Red: uint16(((cu & h.RedMask) >> rs) << 8),
 				Green: uint16(((cu & h.GreenMask) >> gs) << 8),
@@ -70,7 +70,10 @@ func readPixmapRaw(r io.Reader, h *XWDFileHeader) (*xwdPixmapRaw, error) {
 			pixmap.pixels[i] = cl
 			i++
 		}
-		r.Read(discard) // discard line ending
+		_, err := r.Read(discard) // discard line ending
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &pixmap, nil
@@ -91,8 +94,8 @@ func shiftwidth(mask uint32) int {
 	return 0
 }
 
-func readPixmapMapped(r io.Reader, h *XWDFileHeader, colors *XWDColorMap) (*xwdPixmapMapped, error) {
-	pix := xwdPixmapMapped{}
+func readPixmapMapped(r io.Reader, h *FileHeader, colors *ColorMap) (*pixmapMapped, error) {
+	pix := pixmapMapped{}
 	pix.header = h
 	pix.colors = colors
 	pix.pixels = make([]uint8, h.PixmapWidth * h.PixmapHeight)
@@ -108,7 +111,6 @@ func readPixmapMapped(r io.Reader, h *XWDFileHeader, colors *XWDColorMap) (*xwdP
 	var x, y uint32
 	for y = 0; y < h.PixmapHeight; y++ {
 		for x = 0; x < h.PixmapWidth; x++ {
-			// TODO why is it a uint8 and not uin32 as suggested by the header??
 			pix.pixels[i] = uint8(buf[i * colormapKeySize])
 			i++
 		}
@@ -117,28 +119,28 @@ func readPixmapMapped(r io.Reader, h *XWDFileHeader, colors *XWDColorMap) (*xwdP
 	return &pix, nil
 }
 
-func (p *xwdPixmapRaw) At(x, y int) color.Color {
+func (p *pixmapRaw) At(x, y int) color.Color {
 	return &p.pixels[y * int(p.header.PixmapWidth) + x]
 }
 
-func (p *xwdPixmapRaw) Bounds() image.Rectangle {
+func (p *pixmapRaw) Bounds() image.Rectangle {
 	return image.Rect(0, 0, int(p.header.PixmapWidth), int(p.header.PixmapHeight))
 }
 
-func (p *xwdPixmapRaw) ColorModel() color.Model {
+func (p *pixmapRaw) ColorModel() color.Model {
 	return color.RGBAModel
 }
 
-func (p *xwdPixmapMapped) At(x, y int) color.Color {
+func (p *pixmapMapped) At(x, y int) color.Color {
 	id := p.pixels[y * int(p.header.PixmapWidth) + x]
-	color := p.colors.Get(int(id))
-	return &color
+	c := p.colors.Get(int(id))
+	return &c
 }
 
-func (p *xwdPixmapMapped) Bounds() image.Rectangle {
+func (p *pixmapMapped) Bounds() image.Rectangle {
 	return image.Rect(0, 0, int(p.header.PixmapWidth), int(p.header.PixmapHeight))
 }
 
-func (p *xwdPixmapMapped) ColorModel() color.Model {
+func (p *pixmapMapped) ColorModel() color.Model {
 	return color.RGBAModel
 }
