@@ -107,14 +107,14 @@ func ReadHeader(r io.Reader) (*XWDFileHeader, error) {
 	}
 
 	header.ByteOrder = OrderFromUint32(binary.BigEndian.Uint32(buf[24:28]))
-	if header.ByteOrder == Invalid {
+	if header.ByteOrder != BigEndian {
 		return nil, errors.New("Unsupported byte order " + strconv.FormatUint(uint64(binary.BigEndian.Uint32(buf[24:28])), 10))
 	}
 
 	header.BitmapUnit = binary.BigEndian.Uint32(buf[28:32])
 
 	header.BitmapBitOrder = OrderFromUint32(binary.BigEndian.Uint32(buf[32:36]))
-	if header.BitmapBitOrder == Invalid {
+	if header.BitmapBitOrder != BigEndian {
 		return nil, errors.New("Unsupported bit order " + strconv.FormatUint(uint64(binary.BigEndian.Uint32(buf[32:36])), 10))
 	}
 

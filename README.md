@@ -23,9 +23,10 @@ TODO:
  	 * not 3 bytes per color
 	 * Bit and/or byte order not MSBFirst
 	 * pixmap size != window size
+ - Use `init()` to register the decoder
 
- The xwd format
- --------------
+The xwd format
+--------------
 
 It's pretty safe to say that `xwd` is an obsolete format. It is not portable and there's zero documentation on it. Here's what I found so far:
  - The header consists of 25 uint32 values = 100 bytes

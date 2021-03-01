@@ -24,7 +24,7 @@ var opaqAlpha uint32 = uint32(color.Opaque.A) | uint32(color.Opaque.A) << 16
 
 // RGBA implements the image/color.Color.RGBA() method
 func (c *XWDColor) RGBA() (r, g, b, a uint32) {
-	return uint32(c.Red) << 16, uint32(c.Green) << 16, uint32(c.Blue) << 16, 0xffffffff
+	return uint32(c.Red), uint32(c.Green), uint32(c.Blue), 0xffff
 }
 
 type XWDColorMap []XWDColor
