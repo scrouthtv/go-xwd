@@ -42,6 +42,7 @@ func readPixmapRaw(r io.Reader, h *XWDFileHeader) (*xwdPixmapRaw, error) {
 	}
 
 	buf := make([]byte, 4)
+	discard := make([]byte, h.BytesPerLine - h.WindowWidth * h.BitsPerPixel / 8)
 	var cu uint32
 	var cl XWDColor
 
@@ -65,17 +66,9 @@ func readPixmapRaw(r io.Reader, h *XWDFileHeader) (*xwdPixmapRaw, error) {
 				Blue: uint16(((cu & h.BlueMask) >> bs) << 8),
 			}
 			pixmap.pixels[i] = cl
-			if y == 0 && x > 20 {
-				fmt.Println(x, "/", y, ": Read", hecateHex(buf[1:4]))
-			}
-			if y == 1 && x < 5 {
-				fmt.Println(x, "/", y, ": Read", hecateHex(buf[1:4]))
-				fmt.Println("set", x, y, "(", i, ")")
-				fmt.Println(cl.String())
-			}
 			i++
 		}
-		r.Read(buf[1:3]) // discard two bytes
+		r.Read(discard) // discard line ending
 	}
 
 	return &pixmap, nil
