@@ -5,6 +5,13 @@ import (
 	"io"
 )
 
+// any header size (uint32), fileversion (uint32) == 7
+const xwdHeader = "????0007"
+
+func init() {
+	image.RegisterFormat("xwd", xwdHeader, Decode, DecodeConfig)
+}
+
 // Decode reads a XWD image from r and returns it as an image.Image.
 // Reading happens in three steps:
 // 1. Read the header (including the window name).
@@ -27,4 +34,12 @@ func Decode(r io.Reader) (image.Image, error) {
 	}
 
 	return pix, err
+}
+
+func DecodeConfig(r io.Reader) (image.Config, error) {
+	hdr, err := ReadHeader(r)
+	if err != nil {
+		return image.Config{}, err
+	}
+	return hdr.Config(), nil
 }

@@ -6,6 +6,8 @@ import (
 	"log"
 	"errors"
 	"strconv"
+	"image"
+	"image/color"
 )
 
 const (
@@ -62,6 +64,14 @@ func (h *XWDFileHeader) ImageSize() uint32 {
 		return h.BytesPerLine * h.PixmapHeight
 	} else {
 		return h.BytesPerLine * h.PixmapHeight * h.PixmapDepth
+	}
+}
+
+func (h *XWDFileHeader) Config() image.Config {
+	return image.Config{
+		ColorModel: color.RGBAModel,
+		Width: int(h.PixmapWidth),
+		Height: int(h.PixmapHeight),
 	}
 }
 
