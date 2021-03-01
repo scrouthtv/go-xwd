@@ -19,11 +19,9 @@ type XWDColor struct {
 
 const colorSize = 4+2+2+2+1+1
 
-var opaqAlpha uint32 = uint32(color.Opaque.A) | uint32(color.Opaque.A) << 16
-
 // RGBA implements the image/color.Color.RGBA() method
 func (c *XWDColor) RGBA() (r, g, b, a uint32) {
-	return uint32(c.Red), uint32(c.Green), uint32(c.Blue), 0xffff
+	return uint32(c.Red), uint32(c.Green), uint32(c.Blue), uint32(color.Opaque.A)
 }
 
 type XWDColorMap []XWDColor

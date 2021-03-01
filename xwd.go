@@ -9,6 +9,8 @@ import (
 // any header size (uint32), fileversion (uint32) == 7
 const xwdHeader = "????0007"
 
+// DoDebug indicates whether `go-xwd` should print any debugging messages.
+// If enabled, debugging messages are print using log.Print().
 var DoDebug = false
 
 func init() {
@@ -39,6 +41,7 @@ func Decode(r io.Reader) (image.Image, error) {
 	return pix, err
 }
 
+// DecodeConfig tries to read an xwd image and returns it's config.
 func DecodeConfig(r io.Reader) (image.Config, error) {
 	hdr, err := ReadHeader(r)
 	if err != nil {

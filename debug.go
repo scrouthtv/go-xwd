@@ -54,7 +54,7 @@ func (o Order) String() string {
 	}
 }
 
-func hecateHex(p []byte) string {
+/*func hecateHex(p []byte) string {
 	var out strings.Builder
 
 	for _, b := range p {
@@ -62,7 +62,7 @@ func hecateHex(p []byte) string {
 	}
 
 	return out.String()
-}
+}*/
 
 func imageToString(i image.Image) string {
 	var out strings.Builder
