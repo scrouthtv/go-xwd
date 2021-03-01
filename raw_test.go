@@ -3,20 +3,19 @@ package xwd
 import (
 	"bytes"
 	"image/png"
-	"os"
 	"testing"
 
 	_ "embed"
 )
 
-//go:embed 8colors.xwd
-var xwd8colors []byte
+//go:embed 500colors.xwd
+var xwd500colors []byte
 
-//go:embed 8colors.png
-var png8colors []byte
+//go:embed 500colors.png
+var png500colors []byte
 
-func TestHeader(t *testing.T) {
-	rdr := bytes.NewReader(xwd8colors)
+func TestRawImage(t *testing.T) {
+	rdr := bytes.NewReader(xwd500colors)
 
 	hdr, err := ReadHeader(rdr)
 	if err != nil {
@@ -41,14 +40,14 @@ func TestHeader(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Log("\n" + imageToString(p))
-
 	pngImage, err := png.Decode(bytes.NewReader(png8colors))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Log("\n" + imageToString(pngImage))
+	/*t.Log("\n" + imageToString(p))
+
+	t.Log("\n" + imageToString(pngImage))*/
 
 	for x := 0; x < 4; x++ {
 		for y := 0; y < 2; y++ {
@@ -61,7 +60,7 @@ func TestHeader(t *testing.T) {
 		}
 	}
 
-	if !t.Failed() {
+	/*if !t.Failed() {
 		t.Log("All colors equal")
 	}
 
@@ -73,5 +72,5 @@ func TestHeader(t *testing.T) {
 	err = png.Encode(dump, p)
 	if err != nil {
 		t.Fatal(err)
-	}
+	}*/
 }
