@@ -1,10 +1,12 @@
 package xwd
 
-import "strings"
-import "fmt"
-import "strconv"
-import "image"
-import "image/color"
+import (
+	"fmt"
+	"image"
+	"image/color"
+	"strconv"
+	"strings"
+)
 
 // String creates a textual representation of this header.
 // It is comparable to the output of xwud -dumpheaders.
@@ -48,9 +50,12 @@ func (c *Color) String() string {
 
 func (o Order) String() string {
 	switch o {
-	case BigEndian: return "big endian (0)"
-	case LittleEndian: return "little endian (1)"
-	default: return "invalid (" + strconv.Itoa(int(o)) + ")"
+	case BigEndian:
+		return "big endian (0)"
+	case LittleEndian:
+		return "little endian (1)"
+	default:
+		return "invalid (" + strconv.Itoa(int(o)) + ")"
 	}
 }
 
@@ -73,7 +78,7 @@ func imageToString(i image.Image) string {
 	for y := miny; y < maxy; y++ {
 		for x := minx; x < maxx; x++ {
 			r, g, b, _ := i.At(x, y).RGBA()
-			sr, sg, sb := uint8(r >> 8), uint8(g >> 8), uint8(b >> 8)
+			sr, sg, sb := uint8(r>>8), uint8(g>>8), uint8(b>>8)
 			fmt.Fprintf(&out, "\x1b[48;2;%d;%d;%dm  ", sr, sg, sb)
 		}
 		out.WriteString("\x1b[49m\n")

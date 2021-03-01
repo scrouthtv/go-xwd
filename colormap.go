@@ -1,23 +1,23 @@
 package xwd
 
 import (
-	"io"
-	"image/color"
-	"errors"
 	"encoding/binary"
+	"errors"
+	"image/color"
+	"io"
 )
 
 // Color is a color in the xwd image.
 type Color struct {
-	Pixel uint32
-	Red         uint16
-	Green       uint16
-	Blue        uint16
-	Flags       uint8
-	Padding     uint8
+	Pixel   uint32
+	Red     uint16
+	Green   uint16
+	Blue    uint16
+	Flags   uint8
+	Padding uint8
 }
 
-const colorSize = 4+2+2+2+1+1
+const colorSize = 4 + 2 + 2 + 2 + 1 + 1
 
 // RGBA implements the image/color.Color.RGBA() method.
 // It returns rgb values in between 0 and 0xffff and an alpha value of 0xffff.
@@ -53,7 +53,7 @@ func ReadColorMap(r io.Reader, h *FileHeader) (ColorMap, error) {
 			return nil, errors.New("partial color read")
 		}
 		m[i] = Color{
-			binary.BigEndian.Uint32(buf[0:4]),// << 8 seems to be wrong
+			binary.BigEndian.Uint32(buf[0:4]), // << 8 seems to be wrong
 			binary.BigEndian.Uint16(buf[4:6]),
 			binary.BigEndian.Uint16(buf[6:8]),
 			binary.BigEndian.Uint16(buf[8:10]),

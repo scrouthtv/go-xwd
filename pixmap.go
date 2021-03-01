@@ -1,11 +1,13 @@
 package xwd
 
-import "image"
-import "image/color"
-import "errors"
-import "fmt"
-import "io"
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"errors"
+	"fmt"
+	"image"
+	"image/color"
+	"io"
+)
 
 type Pixmap interface {
 	At(x, y int) color.Color
@@ -20,7 +22,7 @@ type pixmapRaw struct {
 	pixels []Color
 }
 
-// pixmapMapped is used if the image's data is colormapped, e.g. 
+// pixmapMapped is used if the image's data is colormapped, e.g.
 // each pixel is a "pointer" to a value of the corresponding color map.
 type pixmapMapped struct {
 	header *FileHeader
@@ -44,11 +46,11 @@ func readPixmapRaw(r io.Reader, h *FileHeader) (*pixmapRaw, error) {
 	}
 
 	buf := make([]byte, 4)
-	discard := make([]byte, h.BytesPerLine - h.WindowWidth * h.BitsPerPixel / 8)
+	discard := make([]byte, h.BytesPerLine-h.WindowWidth*h.BitsPerPixel/8)
 	var cu uint32
 	var cl Color
 
-	pixmap := pixmapRaw{h, make([]Color, h.PixmapWidth * h.PixmapHeight)}
+	pixmap := pixmapRaw{h, make([]Color, h.PixmapWidth*h.PixmapHeight)}
 
 	var rs, gs, bs int = shiftwidth(h.RedMask), shiftwidth(h.GreenMask), shiftwidth(h.BlueMask)
 
@@ -63,9 +65,9 @@ func readPixmapRaw(r io.Reader, h *FileHeader) (*pixmapRaw, error) {
 			cu = binary.BigEndian.Uint32(buf)
 			cl = Color{
 				Pixel: i, Flags: 7, Padding: 0,
-				Red: uint16(((cu & h.RedMask) >> rs) << 8),
+				Red:   uint16(((cu & h.RedMask) >> rs) << 8),
 				Green: uint16(((cu & h.GreenMask) >> gs) << 8),
-				Blue: uint16(((cu & h.BlueMask) >> bs) << 8),
+				Blue:  uint16(((cu & h.BlueMask) >> bs) << 8),
 			}
 			pixmap.pixels[i] = cl
 			i++
@@ -85,7 +87,7 @@ func shiftwidth(mask uint32) int {
 	}
 
 	for i := 0; i < 32; i++ {
-		if mask & 0b1 != 0 {
+		if mask&0b1 != 0 {
 			return i
 		}
 		mask = mask >> 1
@@ -98,10 +100,10 @@ func readPixmapMapped(r io.Reader, h *FileHeader, colors *ColorMap) (*pixmapMapp
 	pix := pixmapMapped{}
 	pix.header = h
 	pix.colors = colors
-	pix.pixels = make([]uint8, h.PixmapWidth * h.PixmapHeight)
+	pix.pixels = make([]uint8, h.PixmapWidth*h.PixmapHeight)
 
-	debugf("Going to read %d bytes", h.PixmapWidth * h.PixmapHeight * colormapKeySize)
-	buf := make([]byte, h.PixmapWidth * h.PixmapHeight * colormapKeySize)
+	debugf("Going to read %d bytes", h.PixmapWidth*h.PixmapHeight*colormapKeySize)
+	buf := make([]byte, h.PixmapWidth*h.PixmapHeight*colormapKeySize)
 	_, err := r.Read(buf)
 	if err != nil {
 		return nil, err
@@ -111,7 +113,7 @@ func readPixmapMapped(r io.Reader, h *FileHeader, colors *ColorMap) (*pixmapMapp
 	var x, y uint32
 	for y = 0; y < h.PixmapHeight; y++ {
 		for x = 0; x < h.PixmapWidth; x++ {
-			pix.pixels[i] = uint8(buf[i * colormapKeySize])
+			pix.pixels[i] = uint8(buf[i*colormapKeySize])
 			i++
 		}
 	}
@@ -120,7 +122,7 @@ func readPixmapMapped(r io.Reader, h *FileHeader, colors *ColorMap) (*pixmapMapp
 }
 
 func (p *pixmapRaw) At(x, y int) color.Color {
-	return &p.pixels[y * int(p.header.PixmapWidth) + x]
+	return &p.pixels[y*int(p.header.PixmapWidth)+x]
 }
 
 func (p *pixmapRaw) Bounds() image.Rectangle {
@@ -132,7 +134,7 @@ func (p *pixmapRaw) ColorModel() color.Model {
 }
 
 func (p *pixmapMapped) At(x, y int) color.Color {
-	id := p.pixels[y * int(p.header.PixmapWidth) + x]
+	id := p.pixels[y*int(p.header.PixmapWidth)+x]
 	c := p.colors.Get(int(id))
 	return &c
 }

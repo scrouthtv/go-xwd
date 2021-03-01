@@ -1,11 +1,13 @@
 package xwd
 
-import "testing"
-import "bytes"
-import "image/png"
-import "os"
+import (
+	"bytes"
+	"image/png"
+	"os"
+	"testing"
 
-import _ "embed"
+	_ "embed"
+)
 
 //go:embed 8colors.xwd
 var xwd8colors []byte
