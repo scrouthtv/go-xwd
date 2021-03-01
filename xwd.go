@@ -3,10 +3,13 @@ package xwd
 import (
 	"image"
 	"io"
+	"log"
 )
 
 // any header size (uint32), fileversion (uint32) == 7
 const xwdHeader = "????0007"
+
+var DoDebug = false
 
 func init() {
 	image.RegisterFormat("xwd", xwdHeader, Decode, DecodeConfig)
@@ -42,4 +45,10 @@ func DecodeConfig(r io.Reader) (image.Config, error) {
 		return image.Config{}, err
 	}
 	return hdr.Config(), nil
+}
+
+func debugf(format string, a ...interface{}) {
+	if DoDebug {
+		log.Printf(format, a...)
+	}
 }

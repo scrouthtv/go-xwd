@@ -3,7 +3,6 @@ package xwd
 import (
 	"encoding/binary"
 	"io"
-	"log"
 	"errors"
 	"strconv"
 	"image"
@@ -83,17 +82,17 @@ func ReadHeader(r io.Reader) (*XWDFileHeader, error) {
 	buf := make([]byte, 4)
 	_, err := r.Read(buf)
 	if err != nil {
-		log.Println("no header size information")
+		debugf("error: no header size information")
 		return nil, err
 	}
 
 	header.HeaderSize = binary.BigEndian.Uint32(buf[0:4])
-	log.Println("header size: ", header.HeaderSize)
+	debugf("header size: %d", header.HeaderSize)
 
 	buf = make([]byte, xwdHeaderSize - 4) // read the rest of the header, we already have the first value
 	_, err = r.Read(buf)
 	if err != nil {
-		log.Println("short header")
+		debugf("error: short header")
 		return nil, err
 	}
 
@@ -151,7 +150,7 @@ func ReadHeader(r io.Reader) (*XWDFileHeader, error) {
 	buf = make([]byte, header.HeaderSize - xwdHeaderSize)
 	_, err = r.Read(buf)
 	if err != nil {
-		log.Println("error reading window name")
+		debugf("error reading window name")
 		return nil, err
 	}
 

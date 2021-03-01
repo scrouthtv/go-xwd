@@ -5,7 +5,6 @@ import "image/color"
 import "errors"
 import "fmt"
 import "io"
-import "log"
 import "encoding/binary"
 
 type XWDPixmap interface {
@@ -31,10 +30,10 @@ type xwdPixmapMapped struct {
 
 func ReadPixmap(r io.Reader, h *XWDFileHeader, colors *XWDColorMap) (XWDPixmap, error) {
 	if h.IsMapped() {
-		log.Println("this is a mapped pixmap")
+		debugf("this is a mapped pixmap")
 		return readPixmapMapped(r, h, colors)
 	} else {
-		log.Println("this is a raw pixmap")
+		debugf("this is a raw pixmap")
 		return readPixmapRaw(r, h)
 	}
 }
@@ -98,7 +97,7 @@ func readPixmapMapped(r io.Reader, h *XWDFileHeader, colors *XWDColorMap) (*xwdP
 	pix.colors = colors
 	pix.pixels = make([]uint8, h.PixmapWidth * h.PixmapHeight)
 
-	log.Println("Going to read", h.PixmapWidth * h.PixmapHeight * colormapKeySize, "bytes")
+	debugf("Going to read %d bytes", h.PixmapWidth * h.PixmapHeight * colormapKeySize)
 	buf := make([]byte, h.PixmapWidth * h.PixmapHeight * colormapKeySize)
 	_, err := r.Read(buf)
 	if err != nil {

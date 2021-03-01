@@ -2,7 +2,6 @@ package xwd
 
 import (
 	"io"
-	"log"
 	"image/color"
 	"errors"
 	"encoding/binary"
@@ -64,7 +63,6 @@ func ReadColorMap(r io.Reader, h *XWDFileHeader) (XWDColorMap, error) {
 			uint8(buf[10]),
 			uint8(buf[11]),
 		}
-		log.Printf("Read %sas %s", hecateHex(buf), m[i].String())
 	}
 
 	return m, nil
