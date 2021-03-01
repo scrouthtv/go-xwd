@@ -2,11 +2,9 @@ package xwd
 
 import (
 	"encoding/binary"
-	"errors"
 	"image"
 	"image/color"
 	"io"
-	"strconv"
 )
 
 const (
@@ -20,6 +18,7 @@ const (
 // FileHeader contains information
 // about an xwd image.
 type FileHeader struct {
+	WindowName        string
 	HeaderSize        uint32
 	FileVersion       uint32
 	PixmapFormat      uint32 /* XYBitmap, XYPixmap, ZPixmap */
@@ -27,9 +26,7 @@ type FileHeader struct {
 	PixmapWidth       uint32
 	PixmapHeight      uint32
 	XOffset           uint32
-	ByteOrder         Order
 	BitmapUnit        uint32
-	BitmapBitOrder    Order
 	BitmapPad         uint32 /* https://www.youtube.com/watch?v=dGt0Y1q0M1A */
 	BitsPerPixel      uint32
 	BytesPerLine      uint32
@@ -45,7 +42,8 @@ type FileHeader struct {
 	WindowX           uint32
 	WindowY           uint32
 	WindowBorderWidth uint32
-	WindowName        string
+	ByteOrder         Order
+	BitmapBitOrder    Order
 }
 
 // IsMapped returns whether this image's data is colormapped
@@ -73,8 +71,7 @@ func ReadHeader(r io.Reader) (*FileHeader, error) {
 	buf := make([]byte, 4)
 	_, err := r.Read(buf)
 	if err != nil {
-		debugf("error: no header size information")
-		return nil, err
+		return nil, &IOError{err, "reading header size"}
 	}
 
 	header.HeaderSize = binary.BigEndian.Uint32(buf[0:4])
@@ -83,8 +80,7 @@ func ReadHeader(r io.Reader) (*FileHeader, error) {
 	buf = make([]byte, xwdHeaderSize-4) // read the rest of the header, we already have the first value
 	_, err = r.Read(buf)
 	if err != nil {
-		debugf("error: short header")
-		return nil, err
+		return nil, &IOError{err, "reading header"}
 	}
 
 	header.FileVersion = binary.BigEndian.Uint32(buf[0:4])
@@ -141,8 +137,7 @@ func ReadHeader(r io.Reader) (*FileHeader, error) {
 	buf = make([]byte, header.HeaderSize-xwdHeaderSize)
 	_, err = r.Read(buf)
 	if err != nil {
-		debugf("error reading window name")
-		return nil, err
+		return nil, &IOError{err, "reading window name"}
 	}
 
 	// strip the null terminator:

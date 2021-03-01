@@ -2,7 +2,6 @@ package xwd
 
 import (
 	"encoding/binary"
-	"errors"
 	"image/color"
 	"io"
 )
@@ -42,15 +41,11 @@ func ReadColorMap(r io.Reader, h *FileHeader) (ColorMap, error) {
 	// Use NumOfColors instead of ColorMapEntries: https://gitlab.freedesktop.org/xorg/app/xwd/-/blob/master/xwd.c#L489
 	var i uint32
 	buf := make([]byte, colorSize)
-	var n int
 	var err error
 	for i = 0; i < h.NumberOfColors; i++ {
-		n, err = r.Read(buf)
+		_, err = r.Read(buf)
 		if err != nil {
-			return nil, err
-		}
-		if n != colorSize {
-			return nil, errors.New("partial color read")
+			return nil, &IOError{err, "reading colormap"}
 		}
 		m[i] = Color{
 			binary.BigEndian.Uint32(buf[0:4]), // << 8 seems to be wrong

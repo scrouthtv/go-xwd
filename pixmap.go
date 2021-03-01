@@ -2,8 +2,6 @@ package xwd
 
 import (
 	"encoding/binary"
-	"errors"
-	"fmt"
 	"image"
 	"image/color"
 	"io"
@@ -42,7 +40,7 @@ func ReadPixmap(r io.Reader, h *FileHeader, colors *ColorMap) (Pixmap, error) {
 
 func readPixmapRaw(r io.Reader, h *FileHeader) (*pixmapRaw, error) {
 	if h.BitsPerPixel != 24 {
-		return nil, errors.New("only 24 bpp supporetd")
+		return nil, &UnsupportedError{"color depth", i32toa(h.BitsPerPixel)}
 	}
 
 	buf := make([]byte, 4)
@@ -60,7 +58,7 @@ func readPixmapRaw(r io.Reader, h *FileHeader) (*pixmapRaw, error) {
 		for x = 0; x < h.PixmapWidth; x++ {
 			_, err := r.Read(buf[1:4])
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("error reading %d %d: %s", x, y, err.Error()))
+				return nil, &IOError{err, "reading pixmap"}
 			}
 			cu = binary.BigEndian.Uint32(buf)
 			cl = Color{
@@ -74,7 +72,7 @@ func readPixmapRaw(r io.Reader, h *FileHeader) (*pixmapRaw, error) {
 		}
 		_, err := r.Read(discard) // discard line ending
 		if err != nil {
-			return nil, err
+			return nil, &IOError{err, "reading pixmap"}
 		}
 	}
 
@@ -106,7 +104,7 @@ func readPixmapMapped(r io.Reader, h *FileHeader, colors *ColorMap) (*pixmapMapp
 	buf := make([]byte, h.PixmapWidth*h.PixmapHeight*colormapKeySize)
 	_, err := r.Read(buf)
 	if err != nil {
-		return nil, err
+		return nil, &IOError{err, "reading pixmap"}
 	}
 
 	var i uint32 = 0
