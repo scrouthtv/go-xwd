@@ -71,14 +71,14 @@ func (o Order) String() string {
 	return out.String()
 }*/
 
-func imageToString(i image.Image) string {
+func imageToString(i image.Image, xscale int, yscale int) string {
 	var out strings.Builder
 
 	minx, miny := i.Bounds().Min.X, i.Bounds().Min.Y
 	maxx, maxy := i.Bounds().Max.X, i.Bounds().Max.Y
 
-	for y := miny; y < maxy; y++ {
-		for x := minx; x < maxx; x++ {
+	for y := miny; y < maxy; y += yscale {
+		for x := minx; x < maxx; x += xscale {
 			r, g, b, _ := i.At(x, y).RGBA()
 			sr, sg, sb := uint8(r>>8), uint8(g>>8), uint8(b>>8)
 			fmt.Fprintf(&out, "\x1b[48;2;%d;%d;%dm  ", sr, sg, sb)
@@ -90,8 +90,58 @@ func imageToString(i image.Image) string {
 }
 
 func ColorEqual(a color.Color, b color.Color) bool {
+	return ColorSimilar(a, b, 0xffff)
+}
+
+func ColorSimilar(a color.Color, b color.Color, mask uint32) bool {
 	ar, ag, ab, aa := a.RGBA()
 	br, bg, bb, ba := b.RGBA()
 
-	return ar == br && ag == bg && ab == bb && aa == ba
+	return ar & mask == br & mask && ag & mask == bg & mask && ab & mask == bb & mask && aa & mask == ba & mask
+}
+
+// ImageEqual tests if two images are similar:
+// If the images don't have the same size, false is returned.
+// Else every pixel is checked if it is similar, e.g. if all its colors are equal
+// discarding the prox least bytes (since images always differ a bit).
+func ImageEqual(a image.Image, b image.Image, prox int) bool {
+	ax0, ay0 := a.Bounds().Min.X, a.Bounds().Min.Y
+	bx0, by0 := b.Bounds().Min.X, b.Bounds().Min.Y
+	ax1, ay1 := a.Bounds().Max.X, a.Bounds().Max.Y
+	bx1, by1 := b.Bounds().Max.X, b.Bounds().Max.Y
+
+	awidth := ax1 - ax0
+	aheight := ay1 - ay0
+	bwidth := bx1 - bx0
+	bheight := by1 - by0
+
+	if awidth != bwidth || aheight != bheight {
+		debugf("Sizes differ: %dx%d / %dx%d", awidth, aheight, bwidth, bheight)
+		return false
+	}
+
+	var mask uint16 = 0xffff << prox
+
+	bxoffset := bx0 - ax0
+	byoffset := by0 - ay0
+
+	var ac, bc color.Color
+
+	var ok bool = true
+
+	for x := ax0; x < ax1; x++ {
+		for y := ay0; y < ay1; y++ {
+			ac = a.At(x, y)
+			bc = b.At(x + bxoffset, y + byoffset)
+
+			if !ColorSimilar(ac, bc, uint32(mask)) {
+				ar, ag, ab, aa := ac.RGBA()
+				br, bg, bb, ba := bc.RGBA()
+				debugf("Colors @ %d/%d differ: %d, %d, %d, %d / %d, %d, %d, %d", x, y, ar, ag, ab, aa, br, bg, bb, ba)
+				ok = false
+			}
+		}
+	}
+
+	return ok
 }

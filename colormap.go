@@ -44,7 +44,7 @@ func ReadColorMap(r io.Reader, h *FileHeader) (ColorMap, error) {
 
 	buf := make([]byte, colorSize)
 
-	for i = 0; i < h.NumberOfColors; i++ {
+	for i = 0; i < h.ColorMapEntries; i++ {
 		_, err = r.Read(buf)
 		if err != nil {
 			return nil, &IOError{err, "reading colormap"}

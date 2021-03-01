@@ -40,37 +40,16 @@ func TestRawImage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pngImage, err := png.Decode(bytes.NewReader(png8colors))
+	pngImage, err := png.Decode(bytes.NewReader(png500colors))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	/*t.Log("\n" + imageToString(p))
+	t.Log("\n" + imageToString(p, 1, 1))
 
-	t.Log("\n" + imageToString(pngImage))*/
+	t.Log("\n" + imageToString(pngImage, 1, 1))
 
-	for x := 0; x < 4; x++ {
-		for y := 0; y < 2; y++ {
-			if !ColorEqual(p.At(x, y), pngImage.At(x, y)) {
-				ir, ig, ib, ia := p.At(x, y).RGBA()
-				sr, sg, sb, sa := pngImage.At(x, y).RGBA()
-				t.Errorf("Colors @ %d/%d differ: should be %d, %d, %d, %d; is %d, %d, %d, %d",
-					x, y, sr, sg, sb, sa, ir, ig, ib, ia)
-			}
-		}
+	if !ImageEqual(p, pngImage, 8) { // have to approximate by 8 because png has a greater bit depth
+		t.Fatal("Images differ")
 	}
-
-	/*if !t.Failed() {
-		t.Log("All colors equal")
-	}
-
-	dump, err := os.Create("dump.png")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = png.Encode(dump, p)
-	if err != nil {
-		t.Fatal(err)
-	}*/
 }
