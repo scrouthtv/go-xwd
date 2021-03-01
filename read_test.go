@@ -34,9 +34,6 @@ func TestHeader(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	/*t.Logf("\nPixmap (%d bytes):\n", len(*p))
-	t.Logf("%x\n", *p)*/
-
 	var x, y uint32
 	var out strings.Builder
 	out.WriteString("\n")
@@ -49,7 +46,5 @@ func TestHeader(t *testing.T) {
 		out.WriteString("\x1b[49m\n")
 	}
 
-	//if false {
 	t.Log(out.String())
-//}
 }

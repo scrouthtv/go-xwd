@@ -18,6 +18,9 @@ What I changed:
  - the reader would allocate a new byte buffer for each pixel (and not reuse the old one)
  - the reader creates a color map from the xwd file which is not used
 
+TODO:
+ - Currently, every color is simply converted to an `XWDColor` which has 16b per channel. Most of the times, we are dealing with 8bpc colors instead, so we should invent a new color model that only has 8b per channel
+
  The xwd format
  --------------
 

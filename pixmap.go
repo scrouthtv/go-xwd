@@ -1,5 +1,6 @@
 package xwd
 
+import "image"
 import "image/color"
 import "errors"
 import "fmt"
@@ -9,6 +10,8 @@ import "encoding/binary"
 
 type XWDPixmap interface {
 	At(x, y int) color.Color
+	Bounds() image.Rectangle
+	ColorModel() color.Model
 }
 
 // xwdPixmapRaw is used if the image's data is stored raw, as in each pixel
@@ -119,8 +122,24 @@ func (p *xwdPixmapRaw) At(x, y int) color.Color {
 	return &p.pixels[y * int(p.header.PixmapWidth) + x]
 }
 
+func (p *xwdPixmapRaw) Bounds() image.Rectangle {
+	return image.Rect(0, 0, int(p.header.PixmapWidth), int(p.header.PixmapHeight))
+}
+
+func (p *xwdPixmapRaw) ColorModel() color.Model {
+	return color.RGBAModel
+}
+
 func (p *xwdPixmapMapped) At(x, y int) color.Color {
 	id := p.pixels[y * int(p.header.PixmapWidth) + x]
 	color := p.colors.Get(int(id))
 	return &color
+}
+
+func (p *xwdPixmapMapped) Bounds() image.Rectangle {
+	return image.Rect(0, 0, int(p.header.PixmapWidth), int(p.header.PixmapHeight))
+}
+
+func (p *xwdPixmapMapped) ColorModel() color.Model {
+	return color.RGBAModel
 }
